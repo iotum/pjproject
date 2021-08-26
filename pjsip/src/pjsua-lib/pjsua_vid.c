@@ -1259,7 +1259,7 @@ void pjsua_vid_stop_stream(pjsua_call_media *call_med)
     if (!strm)
 	return;
 
-    PJ_LOG(4,(THIS_FILE, "Stopping video stream.."));
+    PJ_LOG(2,(THIS_FILE, "Stopping video stream.."));
     pj_log_push_indent();
     
     /* Unregister video stream ports (encode+decode) from conference */

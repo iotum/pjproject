@@ -53,11 +53,11 @@ pjmedia_vid_dev_conv_create_converter(pjmedia_vid_dev_conv *conv,
     if (conv->conv)
         return PJ_SUCCESS;
         
-    if (fmt->id != PJMEDIA_FORMAT_I420 && fmt->id != PJMEDIA_FORMAT_BGRA)
+    if (fmt->id != PJMEDIA_FORMAT_I420 && (fmt->id != PJMEDIA_FORMAT_BGRA || fmt->id != PJMEDIA_FORMAT_BGR0))
         return PJ_EINVAL;
         
     /* Currently, for BGRA format, device must handle the rotation. */
-    if (fmt->id == PJMEDIA_FORMAT_BGRA && handle_rotation)
+    if ((fmt->id == PJMEDIA_FORMAT_BGRA || fmt->id == PJMEDIA_FORMAT_BGR0) && handle_rotation)
         return PJ_ENOTSUP;
 
     if (handle_rotation) {
