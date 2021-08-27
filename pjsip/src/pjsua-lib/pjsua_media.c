@@ -952,7 +952,7 @@ static pj_status_t create_ice_media_transport(
 	const pjmedia_sdp_conn *c;
 
     	m = call_med->call->async_call.rem_sdp->media[call_med->idx];
-	c = m->conn? m->conn : call_med->call->async_call.rem_sdp->conn;
+	c = m && m->conn? m->conn : call_med->call->async_call.rem_sdp->conn;
 
 	if (pj_stricmp(&c->addr_type, &ID_IP6) == 0)
 	    ice_cfg.af = pj_AF_INET6();
@@ -3215,8 +3215,12 @@ static pj_bool_t is_media_changed(const pjsua_call *call,
 
 	/* Compare codec param */
 	if (/* old_cp->enc_mtu != new_cp->enc_mtu || */
+	    /*
 	    pj_memcmp(&old_cp->enc_fmt.det, &new_cp->enc_fmt.det,
 		      sizeof(pjmedia_video_format_detail)) ||
+	    */
+	    pj_memcmp(&old_cp->enc_fmt.det.vid.size, &new_cp->enc_fmt.det.vid.size,
+		      sizeof(pjmedia_rect_size)) ||
 	    !match_codec_fmtp(&old_cp->dec_fmtp, &new_cp->dec_fmtp) ||
 	    !match_codec_fmtp(&old_cp->enc_fmtp, &new_cp->enc_fmtp))
 	{

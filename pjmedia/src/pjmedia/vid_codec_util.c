@@ -514,17 +514,21 @@ PJ_DEF(pj_status_t) pjmedia_vid_codec_h264_match_sdp(pj_pool_t *pool,
     if (option & PJMEDIA_SDP_NEG_FMT_MATCH_ALLOW_MODIFY_ANSWER) {
 	unsigned i;
 
+	const unsigned useOurProfile = option & PJMEDIA_SDP_NEG_FMT_MATCH_USE_OUR_PROFILE;
+
 	/* Flexible negotiation, if the answer has higher capability than
 	 * the offer, adjust the answer capability to be match to the offer.
 	 */
 	if (a_fmtp.profile_idc >= o_fmtp.profile_idc)
 	    a_fmtp.profile_idc = o_fmtp.profile_idc;
-	if (a_fmtp.profile_iop != o_fmtp.profile_iop)
-	    a_fmtp.profile_iop = o_fmtp.profile_iop;
-	if (a_fmtp.level >= o_fmtp.level)
-	    a_fmtp.level = o_fmtp.level;
-	if (a_fmtp.packetization_mode >= o_fmtp.packetization_mode)
-	    a_fmtp.packetization_mode = o_fmtp.packetization_mode;
+	if (!useOurProfile) {
+	    if (a_fmtp.profile_iop != o_fmtp.profile_iop)
+		a_fmtp.profile_iop = o_fmtp.profile_iop;
+	    if (a_fmtp.level >= o_fmtp.level)
+		a_fmtp.level = o_fmtp.level;
+	    if (a_fmtp.packetization_mode >= o_fmtp.packetization_mode)
+		a_fmtp.packetization_mode = o_fmtp.packetization_mode;
+	}
 
 	/* Match them now */
 #if H264_STRICT_SDP_NEGO
