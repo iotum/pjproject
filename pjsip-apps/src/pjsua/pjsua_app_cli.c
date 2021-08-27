@@ -1581,16 +1581,21 @@ static pj_status_t cmd_make_multi_call(pj_cli_cmd_val *cval)
 static pj_status_t cmd_answer_call(pj_cli_cmd_val *cval)
 {
     pjsua_call_info call_info;
+    pjsua_call_id call_id = current_call;
+    int arg_pos = 1;
 
-    if (current_call != PJSUA_INVALID_ID) {
-        pjsua_call_get_info(current_call, &call_info);
+    if (cval->argc > 2)
+        call_id = (int)pj_strtol(&cval->argv[arg_pos++]);
+
+    if (call_id != PJSUA_INVALID_ID) {
+        pjsua_call_get_info(call_id, &call_info);
     } else {
         /* Make compiler happy */
         call_info.role = PJSIP_ROLE_UAC;
         call_info.state = PJSIP_INV_STATE_DISCONNECTED;
     }
 
-    if (current_call == PJSUA_INVALID_ID ||
+    if (call_id == PJSUA_INVALID_ID ||
         call_info.role != PJSIP_ROLE_UAS ||
         call_info.state >= PJSIP_INV_STATE_CONNECTING)
     {
@@ -1604,16 +1609,16 @@ static pj_status_t cmd_answer_call(pj_cli_cmd_val *cval)
         pj_str_t hvalue;
         pjsip_generic_string_hdr hcontact;
 
-        st_code = (int)pj_strtol(&cval->argv[1]);
+        st_code = (int)pj_strtol(&cval->argv[arg_pos++]);
         if ((st_code < 100) || (st_code > 699))
             return PJ_SUCCESS;
 
         pjsua_msg_data_init(&msg_data);
 
         if (st_code/100 == 3) {
-            if (cval->argc < 3) {
-                static const pj_str_t err_msg = {"Enter URL to be put "
-                                                 "in Contact\n",  32};
+            if (cval->argc < arg_pos) {
+                const pj_str_t err_msg = pj_str("Enter URL to be put "
+                                                "in Contact\n");
                 pj_cli_sess_write_msg(cval->sess, err_msg.ptr, err_msg.slen);
                 return PJ_SUCCESS;
             }
@@ -1629,13 +1634,12 @@ static pj_status_t cmd_answer_call(pj_cli_cmd_val *cval)
         * Call may have been disconnected while we're waiting for
         * keyboard input.
         */
-        if (current_call == PJSUA_INVALID_ID) {
-            static const pj_str_t err_msg = {"Call has been disconnected\n",
-                                             28};
+        if (call_id == PJSUA_INVALID_ID) {
+            const pj_str_t err_msg = pj_str("Call has been disconnected\n");
             pj_cli_sess_write_msg(cval->sess, err_msg.ptr, err_msg.slen);
         }
 
-        pjsua_call_answer2(current_call, &call_opt, st_code, NULL, &msg_data);
+        pjsua_call_answer2(call_id, &call_opt, st_code, NULL, &msg_data);
     }
     return PJ_SUCCESS;
 }
@@ -1649,8 +1653,12 @@ static pj_status_t cmd_hangup_call(pj_cli_cmd_val *cval, pj_bool_t all)
     } else {
         if (all)
             pjsua_call_hangup_all();
-        else
-            pjsua_call_hangup(current_call, 0, NULL, NULL);
+        else {
+            pjsua_call_id call_id = current_call;
+            if (cval->argc > 1)
+                call_id = (int)pj_strtol(&cval->argv[1]);
+            pjsua_call_hangup(call_id, 0, NULL, NULL);
+        }
     }
     return PJ_SUCCESS;
 }
@@ -1687,6 +1695,11 @@ static pj_status_t cmd_call_reinvite()
 static pj_status_t cmd_call_update()
 {
     if (current_call != PJSUA_INVALID_ID) {
+        if (app_config.iotum_gw) {
+            pjsua_call_setting_default(&call_opt);
+            pjsua_call_reinvite2(current_call, &call_opt, NULL);
+            return PJ_SUCCESS;
+        }
         pjsua_call_update2(current_call, &call_opt, NULL);
     } else {
         PJ_LOG(3,(THIS_FILE, "No current call"));
@@ -2808,11 +2821,14 @@ static pj_status_t add_call_command(pj_cli_t *c)
         "    </ARG>"
         "  </CMD>"
         "  <CMD name='answer' id='1003' desc='Answer call'>"
+        "    <ARG name='call_id' type='int' desc='Call id'/>"
         "    <ARG name='code' type='int' desc='Answer code'/>"
         "    <ARG name='new_url' type='string' optional='1' "
         "     desc='New URL(for 3xx resp)'/>"
         "  </CMD>"
-        "  <CMD name='hangup' id='1004' sc='g' desc='Hangup call'/>"
+        "  <CMD name='hangup' id='1004' sc='g' desc='Hangup call'>"
+        "    <ARG name='call_id' type='int' optional='1' desc='Call id'/>"
+        "  </CMD>"
         "  <CMD name='hangup_all' id='1005' sc='hA' desc='Hangup all call'/>"
         "  <CMD name='hold' id='1006' sc='H' desc='Hold call'/>"
         "  <CMD name='reinvite' id='1007' sc='v' "

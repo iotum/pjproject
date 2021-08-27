@@ -78,6 +78,7 @@ static pjmedia_video_format_info built_in_vid_fmt_info[] =
     {PJMEDIA_FORMAT_RGB24, "RGB24", PJMEDIA_COLOR_MODEL_RGB, 24, 1, &apply_packed_fmt},
     {PJMEDIA_FORMAT_RGBA,  "RGBA", PJMEDIA_COLOR_MODEL_RGB, 32, 1, &apply_packed_fmt},
     {PJMEDIA_FORMAT_BGRA,  "BGRA", PJMEDIA_COLOR_MODEL_RGB, 32, 1, &apply_packed_fmt},
+    {PJMEDIA_FORMAT_BGR0,  "BGR0", PJMEDIA_COLOR_MODEL_RGB, 32, 1, &apply_packed_fmt},
     {PJMEDIA_FORMAT_DIB ,  "DIB ", PJMEDIA_COLOR_MODEL_RGB, 24, 1, &apply_packed_fmt},
     {PJMEDIA_FORMAT_GBRP,  "GBRP", PJMEDIA_COLOR_MODEL_RGB, 24, 3, &apply_planar_444},
     {PJMEDIA_FORMAT_AYUV,  "AYUV", PJMEDIA_COLOR_MODEL_YUV, 32, 1, &apply_packed_fmt},

@@ -69,6 +69,7 @@ static struct fmt_match_cb_t
 
 /* Redefining a very long identifier name, just for convenience */
 #define ALLOW_MODIFY_ANSWER PJMEDIA_SDP_NEG_FMT_MATCH_ALLOW_MODIFY_ANSWER
+#define USE_OUR_PROFILE PJMEDIA_SDP_NEG_FMT_MATCH_USE_OUR_PROFILE
 
 static pj_status_t custom_fmt_match( pj_pool_t *pool,
                                    const pj_str_t *fmt_name,
@@ -1234,7 +1235,7 @@ static pj_status_t match_offer(pj_pool_t *pool,
                                 if (custom_fmt_match(pool, &or_.enc_name,
                                                      o_med, o_fmt_idx,
                                                      a_med, a_fmt_idx,
-                                                     ALLOW_MODIFY_ANSWER) !=
+                                                     ALLOW_MODIFY_ANSWER | USE_OUR_PROFILE) !=
                                     PJ_SUCCESS)
                                 {
                                     continue;

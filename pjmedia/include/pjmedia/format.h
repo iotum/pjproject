@@ -98,6 +98,7 @@ typedef enum pjmedia_format_id
      */
     PJMEDIA_FORMAT_RGBA     = PJMEDIA_FORMAT_PACK('R', 'G', 'B', 'A'),
     PJMEDIA_FORMAT_BGRA     = PJMEDIA_FORMAT_PACK('B', 'G', 'R', 'A'),
+    PJMEDIA_FORMAT_BGR0     = PJMEDIA_FORMAT_PACK('B', 'G', 'R', '0'),
 
     /**
      * Alias for PJMEDIA_FORMAT_RGBA
