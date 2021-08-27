@@ -172,6 +172,9 @@ typedef struct pjsua_app_config
     /* CLI setting */
     pj_bool_t               use_cli;
     cli_cfg_t               cli_cfg;
+
+    /* Iotum */
+    pj_bool_t               iotum_gw;
 } pjsua_app_config;
 
 /** Extern variable declaration **/

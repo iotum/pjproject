@@ -1970,6 +1970,10 @@ static pj_status_t transport_encode_sdp(pjmedia_transport *tp,
                                           sdp_local, sdp_remote,
                                           media_index);
         if (st != PJ_SUCCESS) {
+            if (st == PJMEDIA_SRTP_ESDPREQCRYPTO) {
+                /* Missing a=crypto, the media is already marked as disabled. */
+                return PJ_SUCCESS;
+            }
             /* This keying method returns error, remove it */
             pj_array_erase(srtp->keying, sizeof(srtp->keying[0]),
                            srtp->keying_cnt, i);

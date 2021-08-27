@@ -3964,6 +3964,12 @@ static pj_bool_t is_media_changed(const pjsua_call *call,
             return PJ_TRUE;
         }
 
+        if (pj_memcmp(&old_cp->enc_fmt.det.vid.size, &new_cp->enc_fmt.det.vid.size,
+                      sizeof(pjmedia_rect_size)))
+        {
+            return PJ_TRUE;
+        }
+
         /* Compare SDP fmtp for both directions */
         if (!match_codec_fmtp(&old_cp->dec_fmtp, &new_cp->dec_fmtp) ||
             !match_codec_fmtp(&old_cp->enc_fmtp, &new_cp->enc_fmtp))

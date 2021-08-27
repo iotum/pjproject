@@ -58,6 +58,10 @@
 #define MAX_DEV_CNT      8
 #define MAX_DEV_NAME_LEN 80
 
+#define DEFAULT_WIDTH    1280
+#define DEFAULT_HEIGHT   720
+#define DEFAULT_FPS      30
+
 #ifndef PJMEDIA_USE_OLD_FFMPEG
 #  define av_free_packet av_packet_unref
 #  define av_close_input_stream(ctx) avformat_close_input(&ctx)
@@ -205,13 +209,11 @@ static pj_status_t ffmpeg_capture_open(AVFormatContext **ctx,
 
 #if LIBAVFORMAT_VER_AT_LEAST(53,2)
     /* Init ffmpeg dictionary */
-    /*
     snprintf(buf, sizeof(buf), "%d/%d", vfd->fps.num, vfd->fps.denum);
     av_dict_set(&format_opts, "framerate", buf, 0);
     snprintf(buf, sizeof(buf), "%dx%d", vfd->size.w, vfd->size.h);
     av_dict_set(&format_opts, "video_size", buf, 0);
     av_dict_set(&format_opts, "pixel_format", av_get_pix_fmt_name(av_fmt), 0);
-    */
     /* Open capture stream */
     err = avformat_open_input(ctx, dev_name, ifmt, &format_opts);
 #else
@@ -407,9 +409,11 @@ static pj_status_t ffmpeg_factory_refresh(pjmedia_vid_dev_factory *f)
     /* Iterate host APIs */
     p = av_input_video_device_next(NULL);
     while (p && ff->dev_count < MAX_DEV_CNT) {
+        char buf[128];
         char dev_names[MAX_DEV_CNT][MAX_DEV_NAME_LEN];
         unsigned dev_cnt = MAX_DEV_CNT;
         unsigned dev_idx;
+        AVDictionary* options = NULL;
 
 #if LIBAVFORMAT_VER_AT_LEAST(60, 21)
         if ((p->flags & AVFMT_NOFILE)==0) {
@@ -418,6 +422,8 @@ static pj_status_t ffmpeg_factory_refresh(pjmedia_vid_dev_factory *f)
 #endif
             goto next_format;
         }
+
+        PJ_LOG(5, (THIS_FILE, "Checking ffmpeg device %s", p->name));
 
 #if (defined(PJ_WIN32) && PJ_WIN32!=0) || \
     (defined(PJ_WIN64) && PJ_WIN64!=0)
@@ -431,12 +437,23 @@ static pj_status_t ffmpeg_factory_refresh(pjmedia_vid_dev_factory *f)
         }
 #elif defined(PJ_LINUX) && PJ_LINUX!=0
         dev_cnt = 1;
-        pj_ansi_snprintf(dev_names[0], MAX_DEV_NAME_LEN, "/dev/video0");
+        if (pj_ansi_strcmp(p->name, "x11grab") == 0) {
+            const char* x11grab_target = getenv("X11GRAB");
+            pj_ansi_snprintf(dev_names[0], MAX_DEV_NAME_LEN, "%s",
+                             x11grab_target == NULL ? ":0" : x11grab_target);
+
+            snprintf(buf, sizeof(buf), "%d", DEFAULT_FPS);
+            av_dict_set(&options, "framerate", buf, 0);
+            snprintf(buf, sizeof(buf), "%dx%d", DEFAULT_WIDTH, DEFAULT_HEIGHT);
+            av_dict_set(&options, "video_size", buf, 0);
+        } else {
+            pj_ansi_snprintf(dev_names[0], MAX_DEV_NAME_LEN, p->name);
+        }
 #else
         dev_cnt = 0;
 #endif
 
-        /* Iterate devices (only DirectShow devices for now) */
+        /* Iterate devices */
         for (dev_idx = 0; dev_idx < dev_cnt && ff->dev_count < MAX_DEV_CNT;
             ++dev_idx)
         {
@@ -449,7 +466,7 @@ static pj_status_t ffmpeg_factory_refresh(pjmedia_vid_dev_factory *f)
             unsigned i;
             
             ctx = avformat_alloc_context();
-            if (!ctx || avformat_open_input(&ctx, dev_names[dev_idx], p, NULL)!=0)
+            if (!ctx || avformat_open_input(&ctx, dev_names[dev_idx], p, &options)!=0)
                 continue;
 
             for(i = 0; i < ctx->nb_streams; i++) {
@@ -472,6 +489,7 @@ static pj_status_t ffmpeg_factory_refresh(pjmedia_vid_dev_factory *f)
 
             status = PixelFormat_to_pjmedia_format_id(codec->pix_fmt, &fmt_id);
             if (status != PJ_SUCCESS) {
+                PJ_LOG(5, (THIS_FILE, "Failed to find pix_fmt: %s", codec->pix_fmt));
                 av_close_input_stream(ctx);
                 continue;
             }
@@ -491,7 +509,7 @@ static pj_status_t ffmpeg_factory_refresh(pjmedia_vid_dev_factory *f)
             info->host_api = p;
 
             /* Set supported formats */
-            info->base.caps = PJMEDIA_VID_DEV_CAP_FORMAT;
+            info->base.caps = PJMEDIA_VID_DEV_CAP_FORMAT | PJMEDIA_VID_DEV_CAP_INPUT_PREVIEW;
             info->base.fmt_cnt = 1;
             for (i = 0; i < info->base.fmt_cnt; ++i) {
                 pjmedia_format *fmt = &info->base.fmt[i];
@@ -501,6 +519,8 @@ static pj_status_t ffmpeg_factory_refresh(pjmedia_vid_dev_factory *f)
 
             av_close_input_stream(ctx);
         }
+
+        av_dict_free(&options);
 
 next_format:
         p = av_input_video_device_next(p);
@@ -552,7 +572,7 @@ static pj_status_t ffmpeg_factory_default_param(pj_pool_t *pool,
     param->clock_rate = 0;
 
     /* Set the device capabilities here */
-    param->flags = PJMEDIA_VID_DEV_CAP_FORMAT;
+    param->flags = PJMEDIA_VID_DEV_CAP_FORMAT | PJMEDIA_VID_DEV_CAP_INPUT_PREVIEW;
     param->clock_rate = 90000;
     pjmedia_format_init_video(&param->fmt, 0, 320, 240, 25, 1);
     param->fmt.id = info->base.fmt[0].id;
@@ -642,6 +662,12 @@ static pj_status_t ffmpeg_stream_get_cap(pjmedia_vid_dev_stream *s,
     PJ_UNUSED_ARG(cap);
     PJ_UNUSED_ARG(pval);
 
+    if (cap==PJMEDIA_VID_DEV_CAP_INPUT_PREVIEW)
+    {
+        *(unsigned*)pval = 0;
+        return PJ_SUCCESS;
+    }
+
     return PJMEDIA_EVID_INVCAP;
 }
 
@@ -655,6 +681,11 @@ static pj_status_t ffmpeg_stream_set_cap(pjmedia_vid_dev_stream *s,
     PJ_UNUSED_ARG(strm);
     PJ_UNUSED_ARG(cap);
     PJ_UNUSED_ARG(pval);
+
+    if (cap==PJMEDIA_VID_DEV_CAP_INPUT_PREVIEW)
+    {
+        return PJ_SUCCESS;
+    }
 
     return PJMEDIA_EVID_INVCAP;
 }
@@ -700,6 +731,8 @@ static pj_status_t ffmpeg_stream_get_frame(pjmedia_vid_dev_stream *s,
     frame->type = PJMEDIA_FRAME_TYPE_VIDEO;
     frame->buf = strm->frame_buf;
     frame->size = p.size;
+    frame->bit_info = 0;
+    frame->timestamp.u64 = p.pts;
     pj_memcpy(frame->buf, p.data, p.size);
     av_free_packet(&p);
 

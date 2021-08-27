@@ -245,14 +245,14 @@ static pj_status_t get_converter_map(pj_uint32_t src_id,
 
     if (src_id == PJMEDIA_FORMAT_I420) {
         GET_MAP(conv_from_i420);
-    } else if (src_id == PJMEDIA_FORMAT_BGRA) {
+    } else if (src_id == PJMEDIA_FORMAT_BGRA || src_id == PJMEDIA_FORMAT_BGR0) {
         GET_MAP(conv_from_bgra);
     }
 
     if (!map) {
         if (dst_id == PJMEDIA_FORMAT_I420) {
             GET_MAP(conv_to_i420);
-        } else if (dst_id == PJMEDIA_FORMAT_BGRA) {
+        } else if (dst_id == PJMEDIA_FORMAT_BGRA || dst_id == PJMEDIA_FORMAT_BGR0) {
             GET_MAP(conv_to_bgra);
         }
     }
@@ -356,7 +356,7 @@ static int set_converter_act(pj_uint32_t src_id,
     pj_bool_t need_scale = PJ_FALSE;
 
     /* Convert to I420 or BGRA if needed. */
-    if ((src_id != PJMEDIA_FORMAT_I420) && (src_id != PJMEDIA_FORMAT_BGRA)) {
+    if ((src_id != PJMEDIA_FORMAT_I420) && (src_id != PJMEDIA_FORMAT_BGRA) && (src_id != PJMEDIA_FORMAT_BGR0)) {
         pj_uint32_t next_id = get_next_conv_fmt(src_id);
         if (get_converter_map(src_id, next_id, src_size, dst_size, ++act_num, 
                               act) != PJ_SUCCESS)

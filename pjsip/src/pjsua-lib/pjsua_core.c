@@ -472,7 +472,7 @@ static pj_bool_t logging_on_rx_msg(pjsip_rx_data *rdata)
     char addr[PJ_INET6_ADDRSTRLEN+10];
     pj_str_t input_str = pj_str(rdata->pkt_info.src_name);
 
-    PJ_LOG(4,(THIS_FILE, "RX %d bytes %s from %s %s:\n"
+    PJ_LOG(5,(THIS_FILE, "RX %d bytes %s from %s %s:\n"
                          "%.*s\n"
                          "--end msg--",
                          rdata->msg_info.len,
@@ -501,7 +501,7 @@ static pj_status_t logging_on_tx_msg(pjsip_tx_data *tdata)
      *  transport layer. So don't try to access tp_info when the module
      *  has lower priority than transport layer.
      */
-    PJ_LOG(4,(THIS_FILE, "TX %d bytes %s to %s %s:\n"
+    PJ_LOG(5,(THIS_FILE, "TX %d bytes %s to %s %s:\n"
                          "%.*s\n"
                          "--end msg--",
                          (int)(tdata->buf.cur - tdata->buf.start),
