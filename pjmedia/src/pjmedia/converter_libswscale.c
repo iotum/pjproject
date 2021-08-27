@@ -122,7 +122,7 @@ static pj_status_t factory_create_converter(pjmedia_converter_factory *cf,
 
     sws_ctx = sws_getContext(src_detail->size.w, src_detail->size.h, srcFormat,
                              dst_detail->size.w, dst_detail->size.h, dstFormat,
-                             SWS_BICUBIC,
+                             src_detail->size.w > dst_detail->size.w ? SWS_BICUBIC : SWS_BILINEAR,
                              NULL, NULL, NULL);
     if (sws_ctx == NULL)
         return PJ_ENOTSUP;

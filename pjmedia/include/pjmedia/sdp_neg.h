@@ -734,6 +734,11 @@ typedef enum pjmedia_sdp_neg_fmt_match_flag
      */
     PJMEDIA_SDP_NEG_FMT_MATCH_ALLOW_MODIFY_ANSWER = 1,
 
+    /**
+     * Use our profile to prepare the fmtp when generating answer for H264.
+     */
+    PJMEDIA_SDP_NEG_FMT_MATCH_USE_OUR_PROFILE = 2,
+
 } pjmedia_sdp_neg_fmt_match_flag;
 
 

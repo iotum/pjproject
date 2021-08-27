@@ -287,24 +287,29 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
             log_call_dump(call_id);
         }
 
-	/* Jibri: exit the application after the call is complete.
-	 * Use exit codes to communicate how the call was ended:
-	 *  * 0: call ended normally (200)
-	 *  * 1: user refused the call (486, 600, 603, 606)
-	 *  * 2: other SIP error
-	 *  * 3: auto-answer timeout
-	 *
-	 *  See: https://en.wikipedia.org/wiki/List_of_SIP_response_codes
-	 */
-	if (call_info.last_status == 200) {
-	    exit(0);
-	} else if (call_info.last_status == 486 ||
-	           call_info.last_status == 600 ||
-	           call_info.last_status == 603 ||
-	           call_info.last_status == 606) {
-            exit(1);
-        } else {
-            exit(2);
+        if (app_config.iotum_gw) {
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ ENDED: %d, %d\n",
+                      call_id, call_info.last_status));
+
+            /* Jibri: exit the application after the call is complete.
+             * Use exit codes to communicate how the call was ended:
+             *  * 0: call ended normally (200)
+             *  * 1: user refused the call (486, 600, 603, 606)
+             *  * 2: other SIP error
+             *
+             *  See: https://en.wikipedia.org/wiki/List_of_SIP_response_codes
+             */
+            if (call_info.last_status == 200) {
+                /* iotum_gw: exit after each successful call */
+                exit(0);
+            } else if (call_info.last_status == 486 ||
+                call_info.last_status == 600 ||
+                call_info.last_status == 603 ||
+                call_info.last_status == 606) {
+                /* exit(1); */
+            } else {
+                /* exit(2); */
+            }
         }
 
     } else {
@@ -364,6 +369,12 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
             PJ_LOG(3,(THIS_FILE, "Call %d state changed to %.*s", 
                       call_id,
                       (int)call_info.state_text.slen,
+                      call_info.state_text.ptr));
+        }
+
+        if (app_config.iotum_gw) {
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ STATE: %d, %s\n",
+                      call_id,
                       call_info.state_text.ptr));
         }
 
@@ -464,6 +475,25 @@ static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id,
                   call_info.local_info.ptr,
                   (app_config.use_cli?"ca a":"a"),
                   (app_config.use_cli?"g":"h")));
+
+        if (app_config.iotum_gw) {
+            pjsip_generic_string_hdr *icc_hdr, *icc_to;
+            const pj_str_t HROOM = pj_str("X-ICC_ROOM_URL");
+            const pj_str_t HCDPN = pj_str("X-ICC_ORIG_NUMBER");
+
+            icc_hdr = (pjsip_generic_string_hdr*)
+                pjsip_msg_find_hdr_by_name(rdata->msg_info.msg, &HROOM, NULL);
+            icc_to = (pjsip_generic_string_hdr*)
+                pjsip_msg_find_hdr_by_name(rdata->msg_info.msg, &HCDPN, NULL);
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ CALL: %d, %.*s :FROM: %.*s :TO: %.*s\n",
+                      call_id,
+                      icc_hdr ? (int)icc_hdr->hvalue.slen : 0,
+                      icc_hdr ? icc_hdr->hvalue.ptr : NULL,
+                      (int)call_info.remote_info.slen,
+                      call_info.remote_info.ptr,
+                      (int)(icc_to ? icc_to->hvalue : call_info.local_info).slen,
+                      (icc_to ? icc_to->hvalue : call_info.local_info).ptr));
+        }
     }
 }
 
@@ -684,6 +714,50 @@ static void on_call_media_state(pjsua_call_id call_id)
                       "enable video!", call_id, vid_idx));
         }
     }
+
+    if (app_config.iotum_gw) {
+        pjsua_vid_win_id wid = -1;
+        pjsua_vid_win_info win_info;
+
+        for (mi=0; mi<call_info.media_cnt; ++mi) {
+            pjsua_call_media_info *med_info = &call_info.media[mi];
+            if (med_info->type == PJMEDIA_TYPE_VIDEO) {
+                if (med_info->status == PJSUA_CALL_MEDIA_ACTIVE) {
+                    wid = med_info->stream.vid.win_in;
+                    pjsua_vid_win_get_info(wid, &win_info);
+                }
+            }
+        }
+        if (wid != -1) {
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ VIDEO: %d, %ux%u\n",
+                      call_id, win_info.size.w, win_info.size.h));
+        } else {
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ VIDEO: %d, None\n",
+                      call_id));
+        }
+    }
+
+    if (app_config.iotum_gw) {
+        pjsua_vid_win_id wid = -1;
+        pjsua_vid_win_info win_info;
+
+        for (mi=0; mi<call_info.media_cnt; ++mi) {
+            pjsua_call_media_info *med_info = &call_info.media[mi];
+            if (med_info->type == PJMEDIA_TYPE_VIDEO) {
+                if (med_info->status == PJSUA_CALL_MEDIA_ACTIVE) {
+                    wid = med_info->stream.vid.win_in;
+                    pjsua_vid_win_get_info(wid, &win_info);
+                }
+            }
+        }
+        if (wid != -1) {
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ VIDEO: %d, %ux%u\n",
+                      call_id, win_info.size.w, win_info.size.h));
+        } else {
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ VIDEO: %d, None\n",
+                      call_id));
+        }
+    }
 #endif
 }
 
@@ -717,6 +791,10 @@ static void call_on_dtmf_callback2(pjsua_call_id call_id,
     };    
     PJ_LOG(3,(THIS_FILE, "Incoming DTMF on call %d: %c%s, using %s method", 
            call_id, info->digit, duration, method));
+    if (app_config.iotum_gw) {
+        PJ_LOG(1,(THIS_FILE, "+IOTUM+ DTMF: %d, %c\n",
+                  call_id, info->digit));
+    }
 }
 
 /* Incoming text stream callback. */
@@ -924,6 +1002,10 @@ static void on_pager(pjsua_call_id call_id, const pj_str_t *from,
               (int)from->slen, from->ptr,
               (int)text->slen, text->ptr,
               (int)mime_type->slen, mime_type->ptr));
+    if (app_config.iotum_gw) {
+        PJ_LOG(1,(THIS_FILE, "+IOTUM+ TEXT: %d, %.*s\n",
+                  call_id, (int)text->slen, text->ptr));
+    }
 }
 
 
@@ -1196,6 +1278,10 @@ static void on_call_media_event(pjsua_call_id call_id,
 
                 /* Re-arrange video windows */
                 arrange_window(PJSUA_INVALID_ID);
+                if (app_config.iotum_gw) {
+                    PJ_LOG(1,(THIS_FILE, "+IOTUM+ FMT: %d, %dx%d\n",
+                              call_id, size.w, size.h));
+                }
             }
         }
     }

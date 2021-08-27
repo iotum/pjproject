@@ -250,6 +250,7 @@ static void usage(void)
     puts  ("  --use-cli           Use CLI as user interface");
     puts  ("  --cli-telnet-port=N CLI telnet port");
     puts  ("  --no-cli-console    Disable CLI console");
+    puts  ("  --iotum-gw          Enable Iotum CLI extention");
     puts  ("");
 
     puts  ("");
@@ -420,7 +421,8 @@ static pj_status_t parse_args(int argc, char *argv[],
            OPT_VIDEO, OPT_TEXT, OPT_TEXT_RED, OPT_EXTRA_AUDIO,
            OPT_VCAPTURE_DEV, OPT_VRENDER_DEV, OPT_PLAY_AVI, OPT_AUTO_PLAY_AVI,
            OPT_REC_AVI, OPT_REC_AVI_SIZE, OPT_REC_AVI_AUDIO, OPT_AUTO_REC_AVI,
-           OPT_USE_CLI, OPT_CLI_TELNET_PORT, OPT_DISABLE_CLI_CONSOLE
+           OPT_USE_CLI, OPT_CLI_TELNET_PORT, OPT_DISABLE_CLI_CONSOLE,
+           OPT_IOTUM_GW
     };
     struct pj_getopt_option long_options[] = {
         { "config-file",1, 0, OPT_CONFIG_FILE},
@@ -578,6 +580,7 @@ static pj_status_t parse_args(int argc, char *argv[],
         { "use-cli",    0, 0, OPT_USE_CLI},
         { "cli-telnet-port", 1, 0, OPT_CLI_TELNET_PORT},
         { "no-cli-console", 0, 0, OPT_DISABLE_CLI_CONSOLE},
+        { "iotum-gw",    0, 0, OPT_IOTUM_GW},
         { NULL, 0, 0, 0}
     };
     pj_status_t status;
@@ -1611,6 +1614,10 @@ static pj_status_t parse_args(int argc, char *argv[],
 
         case OPT_DISABLE_CLI_CONSOLE:
             cfg->cli_cfg.cli_fe &= (~CLI_FE_CONSOLE);
+            break;
+
+        case OPT_IOTUM_GW:
+            cfg->iotum_gw = PJ_TRUE;
             break;
 
         default:

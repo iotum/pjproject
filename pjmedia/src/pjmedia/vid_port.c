@@ -217,6 +217,19 @@ static pj_status_t create_converter(pjmedia_vid_port *vp)
             PJ_PERROR(4,(THIS_FILE, status, "Error creating converter"));
             return status;
         }
+
+        const pjmedia_video_format_info *vfi_src =
+            pjmedia_get_video_format_info(NULL, vp->conv.conv_param.src.id);
+        const pjmedia_video_format_info *vfi_dst =
+            pjmedia_get_video_format_info(NULL, vp->conv.conv_param.dst.id);
+
+        PJ_LOG(3,(THIS_FILE, "Created converter: %s (%dx%d) -> %s (%dx%d)",
+            vfi_src->name,
+            vp->conv.conv_param.src.det.vid.size.w,
+            vp->conv.conv_param.src.det.vid.size.h,
+            vfi_dst->name,
+            vp->conv.conv_param.dst.det.vid.size.w,
+            vp->conv.conv_param.dst.det.vid.size.h));
     }
 
     if (vp->conv.conv ||
@@ -1039,9 +1052,12 @@ static pj_status_t handle_format_change(pjmedia_vid_port *vp)
         /* Change the destination format to the new format */
         pjmedia_format_copy(&vp->conv.conv_param.src,
                             &vp->fmt_event.data.fmt_changed.new_fmt);
-        /* Only copy the size here */
-        vp->conv.conv_param.dst.det.vid.size =
-            vp->fmt_event.data.fmt_changed.new_fmt.det.vid.size;
+        /* IOTUM: retain size for rendering */
+        if (vp->dir != PJMEDIA_DIR_RENDER) {
+            /* Only copy the size here */
+            vp->conv.conv_param.dst.det.vid.size =
+                vp->fmt_event.data.fmt_changed.new_fmt.det.vid.size;
+        }
 
         status = create_converter(vp);
         if (status != PJ_SUCCESS) {

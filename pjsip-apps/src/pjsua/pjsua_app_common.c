@@ -179,6 +179,31 @@ void log_call_dump(int call_id)
     pjsua_call_dump(call_id, PJ_TRUE, some_buf, sizeof(some_buf), "  ");
     call_dump_len = (unsigned)strlen(some_buf);
 
+    if (app_config.iotum_gw) {
+        char buf[128] = "/tmp/iotum-\0";
+        pj_str_t tmp = pj_str(buf);
+
+        pj_str_t guid;
+        guid.ptr = buf;
+        guid.ptr += pj_ansi_strlen(buf);
+        pj_generate_unique_string( &guid );
+
+        pj_oshandle_t fd;
+        pj_status_t status;
+
+        status = pj_file_open(app_config.pool, buf, PJ_O_WRONLY, &fd);
+        if (status == PJ_SUCCESS) {
+            pj_ssize_t size = call_dump_len;
+            pj_file_write(fd, some_buf, &size);
+            pj_file_close(fd);
+
+            PJ_LOG(1,(THIS_FILE, "+IOTUM+ STATS: %d, %s\n",
+                      call_id, tmp));
+
+            return;
+        }
+    }
+
     log_decor = pj_log_get_decor();
     pj_log_set_decor(log_decor & ~(PJ_LOG_HAS_NEWLINE | PJ_LOG_HAS_CR));
     PJ_LOG(3,(THIS_FILE, "\n"));
