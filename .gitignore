@@ -76,3 +76,6 @@ tests/pjsua/logs
 */docs/xml/
 */docs/latex/
 */docs/*.tag
+
+# Misc stuff
+.idea/
